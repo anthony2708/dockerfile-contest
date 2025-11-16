@@ -1,0 +1,82 @@
+# This is a Linux version
+
+# --------------- STEP 1: Build the image-------------------
+
+# Intro: Chainguard is a distroless Docker image registry. All Chainguard images are being used 
+# to securely remove all unneccessary tools and reduce surface for malicious factors
+# Tradeoffs: Stricter configs, needs to setup NPM/PNPM manually
+
+# https://images.chainguard.dev/directory/image/node/versions
+FROM cgr.dev/chainguard/node:latest AS builder 
+
+# Secure by default: Do not use root, use Node user and identify the working dirs
+USER node
+WORKDIR /app
+
+# Install PNPM by:
+# a. Change global package folder to node's home folder
+# b. Add a new ENV, with binary of PNPM to container's PATH
+# c. Run the command (also cleanup the cache)
+RUN npm config set prefix '~/.npm-global'
+ENV PATH="/home/node/.npm-global/bin:$PATH"
+RUN npm install -g pnpm && npm cache clean --force
+
+# Only copy the needed file to /app:
+COPY package.json pnpm-lock.yaml .npmrc index.html tsconfig.json tsconfig.node.json vite.config.ts postcss.config.js tailwind.config.ts ./
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile
+
+# Selective copies to /app/src and /app/public:
+COPY src ./src
+COPY public ./public
+
+# ENV: Production
+ENV CI=true NODE_ENV=production
+
+# Build command
+RUN pnpm run build
+
+# --------- STEP 2: Preparation for healthcheck-------------
+# We will get busybox - a really small image for doing the healthcheck
+# https://hub.docker.com/_/busybox
+FROM busybox:stable AS health_tools
+
+# ----------------- STEP 3: Run the image-------------------
+# Nginx in the list: Use reverse proxy
+
+# Another Chainguard Docker image, this time is Nginx:
+# https://images.chainguard.dev/directory/image/nginx/versions
+FROM cgr.dev/chainguard/nginx:latest AS runner
+
+# Copy conf file - determine port 3000 for container - Set correct permission as a precaution
+# 
+# server {
+#   listen 3000;
+#   root /usr/share/nginx/html;
+#   index index.html;
+#   location / { try_files $uri $uri/ /index.html; }
+# }
+COPY --chown=nginx:nginx nginx.conf /etc/nginx/conf.d/default.conf
+
+# Copy wget into the final image
+COPY --from=health_tools /bin/wget /usr/local/bin/wget
+
+# Important! Get the results from /app/dist and copy to Nginx: Also set the permission, for precaution
+COPY --from=builder --chown=nginx:nginx /app/dist /usr/share/nginx/html
+
+# Labels
+LABEL org.opencontainers.image.version="1.0.0"
+LABEL org.opencontainers.image.authors="Bui Le Tuan Anh"
+
+# Expose port 3000 as required
+EXPOSE 3000
+
+# Healthcheck: wget -spider checks the status of the web as a crawler 
+# Try 1 time for the command * 3 maximum retries, timeout each request in 5 seconds, 
+# Intervals for each healthcheck: 30s. Wait 5 seconds after container starts to run healthcheck
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD ["/usr/local/bin/wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/"]
+
+# Start the nginx server, we will not use CMD but override Entrypoint
+ENTRYPOINT ["/usr/sbin/nginx", "-g", "daemon off;"]
