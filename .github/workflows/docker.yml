@@ -70,7 +70,7 @@ jobs:
         id: image_ref
         run: |
           TAG_NAME=$(echo "${{ steps.meta.outputs.tags }}" | head -n 1 | tr -d '[:space:]')
-          DIGEST=${{ steps.build_push.outputs.digest }}
+          DIGEST=${{ steps.meta.outputs.digest }}
           IMAGE_REFERENCE="$TAG_NAME@$DIGEST"
           echo "IMAGE_REFERENCE=$IMAGE_REFERENCE" >> $GITHUB_OUTPUT
       
