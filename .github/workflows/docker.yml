@@ -17,6 +17,7 @@ jobs:
       packages: write
       attestations: write
       id-token: write
+      security-events: write
     
     steps:
       - name: Checkout repository
@@ -56,32 +57,23 @@ jobs:
         with:
           context: 2025/vite-react-template
           file: 2025/Dockerfile
-          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          push: true
+          sbom: true
+          provenance: mode=max
           cache-from: type=gha
           cache-to: type=gha, mode=max
           platforms: linux/amd64, linux/arm64
       
-      - name: SBOM scanning
-        uses: anchore/sbom-action@v0
-        id: sbom-scan
-        with:
-          image: ${{ env.REGISTRY }}/${{ github.actor }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tags }}
-          format: spdx-json
-          output-file: "${{ env.IMAGE_NAME }}-sbom.spdx.json"
-      
       - name: Scan with Grype
+        id: scan
         uses: anchore/scan-action@v6
         with:
-          sbom: "${{ env.IMAGE_NAME }}-sbom.spdx.json"
-          fail-build: true
-          severity-cutoff: high
-      
-      - name: Get attestations
-        uses: actions/attest-sbom@v2
+          image: ${{ env.REGISTRY }}/${{ github.actor }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tags }}
+
+      - name: Upload results to github
+        uses: github/codeql-action/upload-sarif@v3
         with:
-          subject-name: ${{ env.REGISTRY }}/${{ github.actor }}/${{ env.IMAGE_NAME}}
-          subject-digest: ${{ steps.push.outputs.digest }}
-          sbom-path: "${{ env.IMAGE_NAME }}-sbom.spdx.json"
-          push-to-registry: true
+          sarif_file: ${{ steps.scan.outputs.sarif }}
+      
