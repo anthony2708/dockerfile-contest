@@ -71,9 +71,10 @@ jobs:
         uses: anchore/scan-action@v6
         with:
           image: ${{ env.REGISTRY }}/${{ github.actor }}/${{ env.IMAGE_NAME }}
+          registry-username: ${{ github.actor }}
+          registry-password: ${{ secrets.GITHUB_TOKEN }}
           severity-cutoff: high
           output-file: ${{ runner.temp }}/grype.sarif
-          upload-sbom: false
 
       - name: Upload results to github
         uses: github/codeql-action/upload-sarif@v4
