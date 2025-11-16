@@ -59,20 +59,49 @@ jobs:
           file: 2025/Dockerfile
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          push: true
           sbom: true
           provenance: mode=max
           cache-from: type=gha
           cache-to: type=gha, mode=max
           platforms: linux/amd64, linux/arm64
-      
+
+  scan-and-report:
+    runs-on: ubuntu-latest
+    needs: [build-and-push-image]
+    
+    permissions:
+      contents: write
+      actions: read
+      packages: write
+      attestations: write
+      id-token: write
+      security-events: write
+    
+    steps:
+      - name: Get information
+        id: ref
+        runs: |
+          PUSH_DIGEST="${{ needs.build-and-push-image.outputs.digest }}"
+          LOCAL_TAG="${{ env.REGISTRY }}/${{ github.actor }}/${{ env.IMAGE_NAME }}:main"
+          
+          if [[ -n "$PUSH_DIGEST" ]]; then
+              TAGS="${{ needs.build-and-push-image.outputs.tags }}"
+              TAG_NAME=$(echo "$TAGS" | head -n 1 | tr -d '[:space:]')
+              IMAGE_REFERENCE="$TAG_NAME@$PUSH_DIGEST"
+              echo "INFO: Scanning PUSHED image using DIGEST."
+          else
+              IMAGE_REFERENCE="$LOCAL_TAG"
+              echo "INFO: Scanning LOCAL image using TAG."
+          fi
+          
+          echo "IMAGE_REFERENCE=$IMAGE_REFERENCE" >> $GITHUB_OUTPUT
+
       - name: Scan with Grype
         id: scan
         uses: anchore/scan-action@v6
         with:
-          image: ${{ env.REGISTRY }}/${{ github.actor }}/${{ env.IMAGE_NAME }}
-          registry-username: ${{ github.actor }}
-          registry-password: ${{ secrets.GITHUB_TOKEN }}
+          image: ${{ steps.ref.outputs.IMAGE_REFERENCE }}
           severity-cutoff: high
           output-file: ${{ runner.temp }}/grype.sarif
 
