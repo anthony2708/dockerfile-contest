@@ -65,26 +65,18 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha, mode=max
           platforms: linux/amd64, linux/arm64
-
-      - name: 📝 Get built image reference (TAG@DIGEST)
-        id: image_ref
-        run: |
-          TAG_NAME=$(echo "${{ steps.meta.outputs.tags }}" | head -n 1 | tr -d '[:space:]')
-          DIGEST=${{ steps.meta.outputs.digest }}
-          IMAGE_REFERENCE="$TAG_NAME@$DIGEST"
-          echo "IMAGE_REFERENCE=$IMAGE_REFERENCE" >> $GITHUB_OUTPUT
       
       - name: Scan with Grype
         id: scan
         uses: anchore/scan-action@v6
         with:
-          image: ${{ steps.image_ref.outputs.IMAGE_REFERENCE }}
+          image: ${{ env.REGISTRY }}/${{ github.actor }}/${{ env.IMAGE_NAME }}
           severity-cutoff: high
           output-file: ${{ runner.temp }}/grype.sarif
           upload-sbom: false
 
       - name: Upload results to github
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: ${{ !cancelled() }}
         with:
           sarif_file: ${{ runner.temp }}/grype.sarif
