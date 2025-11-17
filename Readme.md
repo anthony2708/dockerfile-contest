@@ -62,7 +62,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
 
 I choose to write my CI/CD pipeline, and set up the Docker image tags as ```latest```, even all best practices are pointing to using **SHA256** for base ones. Why?
 
-Well, **Chainguard scans images everyday**. If they detect a CVE, they will attempt to fix it asap, and they only attempt to build minimal base images, which only includes **a subset of packages** serving apps themselves and **reduces the attack surface** of them. You will have a no-shell, no-APK Nginx image from Chainguard to use, which is good in the final long run. 
+Well, **Chainguard scans images everyday**. If they detect a CVE, they will attempt to fix it asap, and they only attempt to build minimal base images, which only includes **a subset of packages** serving apps themselves and **reduces the attack surface** of them. You will have a no-shell, no-APK (no Application Package Manager) Nginx image from Chainguard to use, which is good in the final long run. 
 
 Also, you are now trying to push an image to **Github Container Registry (GHCR)**, which is linked to your Github repo. So **why don't you build a CI/CD in which each push means a rebuild of a safer package?**
 
