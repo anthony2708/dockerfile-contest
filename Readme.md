@@ -113,7 +113,7 @@ One advancement of my CI/CD pipeline is, I put it in ```schedule``` mode, meanin
 Currently, it is **daily rebuilt**, and can be done **manually** by me (if there are errors occured). I am considering whether it needs a **per-push deployment** or not.
 
 ## The results
-Well, I might say it is not getting the smallest size at all, but it is actually smaller than what I expected from a Base image:
+Well, I might say it is not getting the smallest size at all, but it is actually smaller than what I expected from a Base image (oops, **I must compare it to Nginx and not static one haha** :>):
 
 ![size](/img/size.png)
 
