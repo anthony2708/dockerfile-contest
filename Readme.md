@@ -134,7 +134,7 @@ This is also a place where you can track the CVE that Chainguard has been detect
 ## TODO & Recommendations
 I would say this: 
 
-_You actually don't need to build this Vite/React app on Docker, unless you want to h**ost it on Kubernetes**. Even with React, Angular, Vue or some simple HTML/CSS/JS files on Github repository, you are okay to use **Github Pages** instead (if you are choosing the public visibility for your web). If you don't believe in Github Pages, check my official repo [here](https://github.com/anthony2708/anthony2708)._
+_You actually don't need to build this Vite/React app on Docker, unless you want to **host it on Kubernetes**. Even with **React, Angular, Vue** or some simple **HTML/CSS/JS files** on Github repository, you are okay to use **Github Pages** instead (if you are choosing the **public visibility** for your web). If you don't believe in Github Pages, check my official repo **[here](https://github.com/anthony2708/anthony2708)**._
 
 _Choose Docker, if that is a **private repo** (and **please don't use the workflow - it may cost money per-minute and per-CPU**). Choose Docker, if that is **not a JS-related project** (or maybe not a **SPA project**). Java, Python (**some of them can be using Github Pages also**), C++, Golang, Rust - all of them needs Docker._
 
