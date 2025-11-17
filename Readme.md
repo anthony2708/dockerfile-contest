@@ -131,8 +131,14 @@ This is also a place where you can track the CVE that Chainguard has been detect
 - [Chainguard Wolfi-base](https://images.chainguard.dev/directory/image/wolfi-base/versions)
 - [Busybox](https://hub.docker.com/_/busybox) - This one, not relevant, alternatively plays a role of compare and contrast here.
 
-## TODO
-My to-do list? Well, I will try to build another Nginx base image based on Chainguard and publish here. I don't want to keep it for myself - providing the safest and easiest way to build the smallest Docker images is my concern after the contest, not just for the smallest images that I have to build manually and monitor the safety of the dependencies myself.
+## TODO & Recommendations
+I would say this: 
+
+_You actually don't need to build this Vite/React app on Docker, unless you want to h**ost it on Kubernetes**. Even with React, Angular, Vue or some simple HTML/CSS/JS files on Github repository, you are okay to use **Github Pages** instead (if you are choosing the public visibility for your web). If you don't believe in Github Pages, check my official repo [here](https://github.com/anthony2708/anthony2708)._
+
+_Choose Docker, if that is a **private repo** (and **please don't use the workflow - it may cost money per-minute and per-CPU**). Choose Docker, if that is **not a JS-related project**. Java, Python (**some of them can be using Github Pages also**), C++, Golang, Rust - all of them needs Docker._
+
+My to-do list? Well, I will try to build another Nginx base image based on Chainguard and publish here. I don't want to keep it for myself - providing the safest and easiest way to build the smallest Docker images is my concern after the contest, not just for the smallest images that I have to "**get my hands dirty**" and monitor the safety of the dependencies myself.
 
 ## Other things to show
 Please check the Contributing file **[here](./.github/CONTRIBUTING.md)**, your CoC - Code of Conduct **[here](./.github/CODE_OF_CONDUCT.md)**, and the templates to use for your Issues report **[here](./.github/ISSUE_TEMPLATE/)**.
