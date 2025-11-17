@@ -46,6 +46,7 @@ When I rewrite my Dockerfile after the exam, I chose to **remove ```busybox```**
 ```Dockerfile
 COPY --chown=node:node src ./src
 COPY --chown=node:node public ./public
+RUN pnpm run build && find dist -type f \( -name "*.map" -o -name ".*" \) -delete
 ```
 - Use ```cgr.dev/chainguard/wolfi-base``` to zip the ```app/dist``` folder from Build step. 
 - Replace the **wget healthcheck** with **nginx default config check**, which is included in the base image.
@@ -108,6 +109,8 @@ Also, I have tried to grab my published image after a success build and chosen a
 ```
 
 One advancement of my CI/CD pipeline is, I put it in ```schedule``` mode, meaning that it will run **on a cron job** (which is far more better than ever, because the image can be **rebuilt daily** to patch the security loopholes that might exploit out there). 
+
+Currently, it is **daily rebuilt**, and can be done **manually** by me (if there are errors occured). I am considering whether it needs a **per-push deployment** or not.
 
 ## The results
 Well, I might say it is not getting the smallest size at all, but it is actually smaller than what I expected from a Base image:
