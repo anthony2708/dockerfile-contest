@@ -1,3 +1,129 @@
 # Dockerfile Contest
 
-This Readme is currently under development, please stay tuned!
+I started this repository after [2025 Dockerfile Contest](https://devops.vn/webinar/dockerfile-contest-2025/) - thank DevOps Vietnam and DataOnline for organizing the contest, where I did not stand a chance to win due to a lot of "**lightweight**" Dockerfiles. (_I put lightweight in **""**, as it means a different way - **no redundant code, no extra configs, almost nothing! - you have to build the binary yourself**_)
+
+When I joined the webminar, I once heard a question from an audience, asking: "**Why are you using this way, instead of doing the basic way, which is by Chainguard Docker images? And are there potential security concerns when you are doing the configs by yourself?**" 
+
+I thought: "**Hey, why don't you make a Dockerfile which can receive updates daily and auto-rebuild the image automatically?**"
+
+## The folder tree
+
+Currently this is simple:
+- ```.github/``` with some Markdown files for wordings and a ```docker.yml``` file - the main CI/CD workflow
+- ```2025/```
+    - ```vite-react-template```: The source code folder
+    - ```Dockerfile```: The main Dockerfile (I move this file from the source code folder to the desired place)
+    - ```Dockerfile.linux_contest```: The Dockerfile that I submitted to the Organization Board 
+    - ```Dockerfile.windows_contest```: The Dockerfile that I have to create due to a "**stupid**" folder move from a ```ext4``` filesystem to a ```ntfs``` partition.
+    - ```Readme.md```: The explanation (in Vietnamese) that I submitted to the Organization Board
+- ```Readme.md```: This file
+- ```LICENSE```: MIT
+
+You can explore yourself in this repository.
+
+## How to use it
+
+```bash
+docker pull ghcr.io/anthony2708/vite-react-chainguard
+```
+Check the current status and the way to download the images **[here](https://github.com/anthony2708/dockerfile-contest/pkgs/container/vite-react-chainguard)**.
+
+There are images for ```linux/amd64```, ```linux/arm64``` and ```others``` kernels.
+
+## The secrets
+
+I put the most of my knowledge here.
+
+### Dockerfile
+
+There are 3 steps initially done in my Dockerfile.
+
+When I first submitted the file, I used ```cgr.dev/chainguard``` for my **Node (Build step)** and **Nginx (Run step)**, and ```busybox``` for **wget Healthcheck (Step 2)**. It turned out the wget cost **1MB**, which is not good for the competition.
+
+When I rewrite my Dockerfile after the exam, I chose to **remove ```busybox```**. What I did was:
+
+- Keep the same Build step, but **add a flag** to determine the owner of the folder: ```node:node``` and remove artifacts mapping, which is causing a huge of data to be added to the final source.
+- Use ```cgr.dev/chainguard/wolfi-base``` to zip the ```app/dist``` folder from Build step. 
+- Replace the **wget healthcheck** with **nginx default config check**, which is included in the base image.
+
+### CI/CD
+
+**This is the best part of it.**
+
+I choose to write the CI/CD pipeline, dependant on the image tag as ```latest```, even the best practices are to use **SHA256** for the base ones. Why?
+
+Well, **Chainguard scans the image everyday**. If they detect a CVE, they will attempt to fix it asap, and they only attempt to build a minimal base image, which only includes **a subset of packages** serving the app itself and **reduces the attack surface** of it. You will have a no-shell, no-APK Nginx image from Chainguard to use, which is good in the final long run. 
+
+Also, you are now trying to push an image to **Github Container Registry (GHCR)**, which is linked to your Github repo. So **why don't you build a CI/CD in which each push means a rebuild of a safer package?**
+
+Another thing to consider about CI/CD is - I choose to do a Pull-and-Push with Buildkit enabled for better caching, yet having the same functionalities of getting the latest, most secure image on time:
+
+```yml
+    ...
+      - name: Build and push images to ghcr
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: 2025/vite-react-template
+          file: 2025/Dockerfile
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          push: true
+          pull: true
+          sbom: true
+          provenance: mode=max
+          cache-from: type=gha
+          cache-to: type=gha, mode=max
+          platforms: linux/amd64, linux/arm64
+    ...
+```
+
+Also, I have tried to grab my published image after a success build and chosen an action called ```anchore/scan-action``` - That is **Grype** actually (aha!) to run in another job for scanning for vulnarabilities in the same workflow, and also upload the scan report results to Github too!
+
+```yml
+    ...
+      - name: Scan with Grype
+        id: scan
+        uses: anchore/scan-action@v6
+        with:
+          image: ${{ steps.ref.outputs.IMAGE_REFERENCE }}
+          severity-cutoff: high
+          output-file: ${{ runner.temp }}/grype.sarif
+
+      - name: Upload results to github
+        uses: github/codeql-action/upload-sarif@v4
+        if: ${{ !cancelled() }}
+        with:
+          sarif_file: ${{ runner.temp }}/grype.sarif
+    ...
+```
+
+One advancement of my CI/CD pipeline is, I put it in ```schedule``` mode, meaning that it will run **on a cron job** (which is far more better than ever, because the image can be **rebuilt daily** to patch the security loopholes that might exploit out there). 
+
+## The results
+Well, I might say it is not getting the smallest size at all, but it is actually smaller than what I expected from a Base image:
+
+![size](/img/size.png)
+
+But looking closely at the zipped source code, this makes me happy (**672kB for zipped files, 127B for Nginx config file**):
+
+![inspect](/img/inspect.png)
+
+And if you want to see what happens to the Github Actions pipeline, go to **[this place](https://github.com/anthony2708/dockerfile-contest/actions)** for more information.
+
+## Base images to refer
+This is also a place where you can track the CVE that Chainguard has been detected in each of the base images that I use:
+
+- [Chainguard Node](https://images.chainguard.dev/directory/image/node/versions)
+- [Chainguard Nginx](https://images.chainguard.dev/directory/image/nginx/versions)
+- [Chainguard Wolfi-base](https://images.chainguard.dev/directory/image/wolfi-base/versions)
+- [Busybox](https://hub.docker.com/_/busybox) - This one, not relevant, alternatively plays a role of compare and contrast here.
+
+## TODO
+My to-do list? Well, I will try to build another Nginx base image based on Chainguard and publish here. I don't want to keep it for myself - providing the safest and easiest way to build the smallest Docker images is my concern after the contest, not just for the smallest images that I have to build manually and monitor the safety of the dependencies myself.
+
+## Other things to show
+Please check the Contributing file **[here](./.github/CONTRIBUTING.md)**, your CoC - Code of Conduct **[here](./.github/CODE_OF_CONDUCT.md)**, and the templates to use for your Issues report **[here](./.github/ISSUE_TEMPLATE/)**.
+
+## [LICENSE](./LICENSE)
+MIT - 2025
