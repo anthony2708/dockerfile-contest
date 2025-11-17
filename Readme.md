@@ -38,18 +38,18 @@ I put the most of my knowledge here.
 
 There are 3 steps initially done in my Dockerfile.
 
-When I first submitted my Dockerfile, I used ```cgr.dev/chainguard``` for my **Node (Build step)** and **Nginx (Run step)**, and ```busybox``` for **wget Healthcheck (Step 2)**. It turned out that wget added **1MB** to my final submission, which is not good for a Dockerfile competition.
+When I first submitted my Dockerfile, I used ```cgr.dev/chainguard``` for my **Node (Build step)** and **Nginx (Run step)**, and ```busybox``` for **wget Healthcheck (Step 2)**. It turned out that wget added **1MB** to my final submission, which was not good for a Dockerfile competition.
 
 I decide to rewrite my Dockerfile after the exam, and I choose to **remove ```busybox```**. What I did was:
 
-- Keep my same Build step, but **add a flag** to determine a correct owner of the folder: ```node:node``` and remove artifacts mapping, which is causing a huge of data to be added to the final source.
+- Keep my same Build step, but **add a flag** to determine a correct owner of the folder: ```node:node``` and remove artifacts mapping, which is causing a huge of data to be added to the final source code.
 ```Dockerfile
 COPY --chown=node:node src ./src
 COPY --chown=node:node public ./public
 RUN pnpm run build && find dist -type f \( -name "*.map" -o -name ".*" \) -delete
 ```
 - Use ```cgr.dev/chainguard/wolfi-base``` to zip the ```app/dist``` folder from Build step. 
-- Replace **wget healthcheck** with **nginx default config check**, which is included in Chainguard Nginx base image.
+- Replace **wget healthcheck** with **nginx default config check**, included in Chainguard Nginx base image.
 
 ```Dockerfile
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
