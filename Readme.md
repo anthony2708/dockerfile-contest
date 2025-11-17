@@ -2,9 +2,9 @@
 
 I started this repository after [2025 Dockerfile Contest](https://devops.vn/webinar/dockerfile-contest-2025/) - thank DevOps Vietnam and DataOnline for organizing the contest, where I did not stand a chance to win due to a lot of "**lightweight**" Dockerfiles. (_I put lightweight in **""**, as it means a different way - **no redundant code, no extra configs, almost nothing! - you have to build the binary yourself**_)
 
-When I joined the webminar, I once heard a question from an audience, asking: "**Why are you using this way, instead of doing the basic way, which is by Chainguard Docker images? And are there potential security concerns when you are doing the configs by yourself?**" 
+When I joined the webinar, I once heard a question from an audience, asking: _"**Why are you using this way, instead of doing the basic way, which is by Chainguard Docker images? And are there potential security concerns when you are doing the configs by yourself?**"_ 
 
-I thought: "**Hey, why don't you make a Dockerfile which can receive updates daily and auto-rebuild the image automatically?**"
+I thought: _"**Hey, why don't you make a Dockerfile which can receive updates daily and auto-rebuild the image automatically?**"_
 
 ## The folder tree
 
@@ -43,8 +43,17 @@ When I first submitted the file, I used ```cgr.dev/chainguard``` for my **Node (
 When I rewrite my Dockerfile after the exam, I chose to **remove ```busybox```**. What I did was:
 
 - Keep the same Build step, but **add a flag** to determine the owner of the folder: ```node:node``` and remove artifacts mapping, which is causing a huge of data to be added to the final source.
+```Dockerfile
+COPY --chown=node:node src ./src
+COPY --chown=node:node public ./public
+```
 - Use ```cgr.dev/chainguard/wolfi-base``` to zip the ```app/dist``` folder from Build step. 
 - Replace the **wget healthcheck** with **nginx default config check**, which is included in the base image.
+
+```Dockerfile
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+    CMD ["/usr/sbin/nginx", "-t", "-q"]
+```
 
 ### CI/CD
 
