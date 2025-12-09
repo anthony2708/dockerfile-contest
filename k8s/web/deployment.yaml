@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webapp
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: webapp
+  template:
+    metadata:
+      labels:
+        app: webapp
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: webapp
+          image: ghcr.io/anthony2708/vite-react-chainguard:main
+          ports:
+            - containerPort: 3000
